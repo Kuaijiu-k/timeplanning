@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程表空闲时间分析工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .step {
+            margin-bottom: 30px;
+        }
+        
+        .step-title {
+            font-size: 1.4rem;
+            color: #3498db;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        textarea {
+            min-height: 300px;
+            resize: vertical;
+            font-family: monospace;
+            line-height: 1.5;
+            white-space: pre;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        button {
+            padding: 14px 28px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        #analyzeBtn {
+            background-color: #2ecc71;
+        }
+        
+        #analyzeBtn:hover {
+            background-color: #27ae60;
+        }
+        
+        #clearBtn {
+            background-color: #e74c3c;
+        }
+        
+        #clearBtn:hover {
+            background-color: #c0392b;
+        }
+        
+        .result-container {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 5px solid #2ecc71;
+        }
+        
+        .result-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-title i {
+            margin-right: 10px;
+            color: #2ecc71;
+        }
+        
+        .day-schedule {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .day-title {
+            font-size: 1.2rem;
+            color: #3498db;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .time-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .slot {
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .occupied {
+            background-color: #ffebee;
+            color: #e74c3c;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .free {
+            background-color: #e8f5e9;
+            color: #27ae60;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .course-details {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .course-item {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .course-item:last-child {
+            border-bottom: none;
+        }
+        
+        .course-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .course-info {
+            color: #666;
+            margin-left: 10px;
+            font-size: 0.85rem;
+        }
+        
+        .note {
+            background-color: #fff8e1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #f1c40f;
+        }
+        
+        .note h3 {
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+        
+        .note ul {
+            padding-left: 20px;
+        }
+        
+        .note li {
+            margin-bottom: 8px;
+        }
+        
+        .example {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #555;
+            overflow-x: auto;
+        }
+        
+        .example-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #3498db;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>课程表空闲时间分析工具</h1>
+            <p class="subtitle">输入课程表，分析指定周次的空闲时间段</p>
+        </header>
+        
+        <div class="step">
+            <h2 class="step-title">1. 确认分析目标</h2>
+            <div class="input-group">
+                <label for="weekInput">需要分析哪一周的课程？</label>
+                <!-- 修改默认值为1 -->
+                <input type="number" id="weekInput" min="1" max="30" value="1" placeholder="请输入周次（例如：1）">
+            </div>
+            
+            <div class="input-group">
+                <label for="courseTable">请粘贴或输入完整课程表（支持多个课表的输入，两个课表间需换行）</label>
+                <textarea id="courseTable" placeholder="请按以下格式输入课程信息：
+星期一
+1-2	
+经济学概论 周数：1-16周 校区:中心校区 上课地点：敬业F310  教师 ：王海
+3-4	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信221  教师 ：王小磊
+5-6	
+单片机与接口技术 周数：1-10周 校区:中心校区 上课地点：敬信220  教师 ：陈豹
+
+星期三
+1-2	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信217  教师 ：王小磊
+3-4	
+◆操作系统 周数：1-12周 校区:中心校区 上课地点：敬信217  教师 ：党向盈
+
+说明：
+1. 以星期开头，后面跟具体的课程信息
+2. 节次单独一行（如1-2、3-4等）
+3. 课程信息包含：课程名称、周数、校区、地点、教师"></textarea>
+            </div>
+            
+            <div class="example">
+                <div class="example-title">示例格式（可直接在教务系统中以列表形式复制课表）：</div>
+                <pre style="font-family: inherit; background-color: #f0f7ff; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; color: #555; overflow-x: auto;">星期一
+1-2	
+经济学概论 周数：1-16周 校区:中心校区 上课地点：敬业F310  教师 ：王海
+3-4	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信221  教师 ：王小磊
+5-6	
+单片机与接口技术 周数：1-10周 校区:中心校区 上课地点：敬信220  教师 ：陈豹
+9-10	
+大学生创新创业素质教育 周数：1-8周 校区:中心校区 上课地点：敬业F509  教师 ：王倩
+
+星期二
+1-2	
+◆计算机网络原理 周数：1-6周,8-11周 校区:中心校区 上课地点：敬信219  教师 ：鲍蓉
+3-4	
+【调】人工智能导论 周数：1-3周,5周 校区:中心校区 上课地点：敬本C502  教师 ：李凡甲
+【调】人工智能导论 周数：4-6周(双),7-16周 校区:中心校区 上课地点：敬业F410  教师 ：李凡甲
+
+星期三
+1-2	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信217  教师 ：王小磊
+3-4	
+◆操作系统 周数：1-12周 校区:中心校区 上课地点：敬信217  教师 ：党向盈
+
+星期四
+1-2	
+单片机与接口技术 周数：1-10周 校区:中心校区 上课地点：敬信220  教师 ：陈豹
+3-4	
+工业互联网概论 周数：1-8周 校区:中心校区 上课地点：敬本C302  教师 ：刘照洋
+8-8	
+体育(Ⅴ)排球 周数：5-16周 校区:中心校区 上课地点：未排地点  教师 ：张海
+
+星期五
+1-2	
+◆计算机网络原理 周数：1-6周,8-11周 校区:中心校区 上课地点：敬信219  教师 ：鲍蓉
+3-4	
+◆操作系统 周数：1-12周 校区:中心校区 上课地点：敬信217  教师 ：党向盈</pre>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="analyzeBtn">分析空闲时间</button>
+            <button id="clearBtn">清空输入</button>
+        </div>
+        
+        <div id="resultContainer" class="result-container">
+            <h2 class="result-title">
+                <span>空闲时间分析结果</span>
+            </h2>
+            
+            <div id="weekInfo" style="margin-bottom: 20px; padding: 10px 15px; background-color: #e3f2fd; border-radius: 6px;">
+                <strong>分析周次：</strong><span id="weekNumber">15</span>周
+                <strong style="margin-left: 20px;">解析课程：</strong><span id="totalCourses">0</span>条
+                <strong style="margin-left: 20px;">占用课程：</strong><span id="occupiedCourses">0</span>条
+            </div>
+            
+            <div id="scheduleResults">
+                <!-- 空闲时间结果将在这里动态生成 -->
+            </div>
+            
+            <!-- 添加文本格式的空闲时间分析结果区域 -->
+            <div id="textResultContainer" style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h3 style="margin-bottom: 15px; color: #2c3e50;">空闲时间分析结果（文本格式）</h3>
+                <div style="margin-bottom: 15px;">
+                    <button id="copyTextBtn" style="padding: 8px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; float: right;">复制文本</button>
+                    <div style="clear: both;"></div>
+                </div>
+                <div id="textResultContent" style="white-space: pre-wrap; font-family: 'Courier New', monospace; background-color: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; min-height: 100px;">
+                    <!-- 文本格式的空闲时间结果将在这里动态生成 -->
+                </div>
+            </div>
+            
+            <div class="note">
+                <h3>注意事项：</h3>
+                <ul>
+                    <li>以下分析基于提供的理论课表，实验课时间可能影响空闲时间段</li>
+                    <li>同一时间段可能有多条课程（如实验课），需特别确认</li>
+                    <li>体育课通常为1节，需要确认具体节次</li>
+                    <li>如遇调课、临时活动等，请以实际安排为准</li>
+                    <li>双周课程仅在第2、4、6、8...周有课，单周课程仅在第1、3、5、7...周有课</li>
+                    <li>支持复杂周数格式：1-16周、1-10周、5-16周(双)、1-6周,8-11周、1-3周,5周等</li>
+                    <li><strong>注意：如果9-10节有课，9-11节也会显示为占用状态</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>课程表空闲时间分析工具 &copy; 2023 | 设计用于帮助学生规划学习时间</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const weekInput = document.getElementById('weekInput');
+            const courseTable = document.getElementById('courseTable');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const weekNumber = document.getElementById('weekNumber');
+            const totalCourses = document.getElementById('totalCourses');
+            const occupiedCourses = document.getElementById('occupiedCourses');
+            const scheduleResults = document.getElementById('scheduleResults');
+            // 获取新增的DOM元素
+            const copyTextBtn = document.getElementById('copyTextBtn');
+            const textResultContent = document.getElementById('textResultContent');
+            
+            // 示例课程数据（新格式）- 修改了9-11节为9-10节来演示效果
+            const exampleCourses = `星期一
+1-2	
+经济学概论 周数：1-16周 校区:中心校区 上课地点：敬业F310  教师 ：王海
+3-4	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信221  教师 ：王小磊
+5-6	
+单片机与接口技术 周数：1-10周 校区:中心校区 上课地点：敬信220  教师 ：陈豹
+9-10	
+大学生创新创业素质教育 周数：1-8周 校区:中心校区 上课地点：敬业F509  教师 ：王倩
+
+星期二
+1-2	
+◆计算机网络原理 周数：1-6周,8-11周 校区:中心校区 上课地点：敬信219  教师 ：鲍蓉
+3-4	
+【调】人工智能导论 周数：1-3周,5周 校区:中心校区 上课地点：敬本C502  教师 ：李凡甲
+【调】人工智能导论 周数：4-6周(双),7-16周 校区:中心校区 上课地点：敬业F410  教师 ：李凡甲
+
+星期三
+1-2	
+◆软件工程基础 周数：1-10周 校区:中心校区 上课地点：敬信217  教师 ：王小磊
+3-4	
+◆操作系统 周数：1-12周 校区:中心校区 上课地点：敬信217  教师 ：党向盈
+
+星期四
+1-2	
+单片机与接口技术 周数：1-10周 校区:中心校区 上课地点：敬信220  教师 ：陈豹
+3-4	
+工业互联网概论 周数：1-8周 校区:中心校区 上课地点：敬本C302  教师 ：刘照洋
+8-8	
+体育(Ⅴ)排球 周数：5-16周 校区:中心校区 上课地点：未排地点  教师 ：张海
+
+星期五
+1-2	
+◆计算机网络原理 周数：1-6周,8-11周 校区:中心校区 上课地点：敬信219  教师 ：鲍蓉
+3-4	
+◆操作系统 周数：1-12周 校区:中心校区 上课地点：敬信217  教师 ：党向盈`;
+            
+            // 不再设置示例数据，让文本区域保持为空
+            // courseTable.value = exampleCourses;
+            
+            // 分析按钮点击事件
+            analyzeBtn.addEventListener('click', function() {
+                const targetWeek = parseInt(weekInput.value);
+                const courseText = courseTable.value.trim();
+                
+                if (!courseText) {
+                    alert('请输入课程表数据');
+                    return;
+                }
+                
+                if (!targetWeek || targetWeek < 1) {
+                    alert('请输入有效的周次');
+                    return;
+                }
+                
+                // 解析课程表（新格式）
+                const courses = parseNewFormatCourseTable(courseText);
+                // 筛选目标周课程
+                const targetWeekCourses = filterCoursesByWeek(courses, targetWeek);
+                // 分析空闲时间
+                const freeTime = analyzeFreeTime(targetWeekCourses);
+                // 显示结果
+                displayResults(targetWeek, courses, targetWeekCourses, freeTime);
+                // 生成并显示文本格式结果
+                generateTextResult(targetWeek, freeTime);
+            });
+            
+            // 清空按钮点击事件
+            clearBtn.addEventListener('click', function() {
+                courseTable.value = '';
+                resultContainer.style.display = 'none';
+            });
+            
+            // 复制文本按钮点击事件
+            copyTextBtn.addEventListener('click', function() {
+                const textToCopy = textResultContent.innerText;
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    // 复制成功提示
+                    const originalText = copyTextBtn.textContent;
+                    copyTextBtn.textContent = '已复制';
+                    setTimeout(function() {
+                        copyTextBtn.textContent = originalText;
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制');
+                });
+            });
+            
+            // 解析新格式的课程表文本
+            function parseNewFormatCourseTable(text) {
+                const lines = text.split('\n');
+                const courses = [];
+                let currentDay = '';
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    if (!line) continue;
+                    
+                    // 检查是否是星期开头
+                    if (line.match(/^星期[一二三四五六日]/)) {
+                        currentDay = line;
+                        continue;
+                    }
+                    
+                    // 检查是否是节次行（如1-2、3-4、9-10等）
+                    const timeMatch = line.match(/^(\d+)(?:-(\d+))?$/);
+                    if (timeMatch && currentDay) {
+                        const startSlot = parseInt(timeMatch[1]);
+                        const endSlot = timeMatch[2] ? parseInt(timeMatch[2]) : startSlot;
+                        const timeSlot = timeMatch[2] ? `${startSlot}-${endSlot}节` : `${startSlot}节`;
+                        
+                        // 下一行应该是课程信息
+                        if (i + 1 < lines.length) {
+                            const courseLine = lines[i + 1].trim();
+                            i++; // 跳过课程信息行
+                            
+                            if (courseLine) {
+                                // 解析课程信息
+                                const courseInfo = parseCourseInfo(courseLine);
+                                
+                                const course = {
+                                    day: currentDay,
+                                    timeSlot: timeSlot,
+                                    startSlot: startSlot,
+                                    endSlot: endSlot,
+                                    name: courseInfo.name,
+                                    weekRange: courseInfo.weekRange,
+                                    campus: courseInfo.campus,
+                                    location: courseInfo.location,
+                                    teacher: courseInfo.teacher,
+                                    rawInfo: courseLine
+                                };
+                                
+                                courses.push(course);
+                            }
+                        }
+                    }
+                }
+                
+                return courses;
+            }
+            
+            // 解析课程信息行
+            function parseCourseInfo(courseLine) {
+                // 初始化默认值
+                const courseInfo = {
+                    name: '',
+                    weekRange: '',
+                    campus: '',
+                    location: '',
+                    teacher: ''
+                };
+                
+                // 提取课程名称（通常是第一个部分）
+                const nameMatch = courseLine.match(/^([^周数：]+)/);
+                if (nameMatch) {
+                    courseInfo.name = nameMatch[1].trim();
+                }
+                
+                // 提取周数信息
+                const weekMatch = courseLine.match(/周数：([^ ]+)/);
+                if (weekMatch) {
+                    courseInfo.weekRange = weekMatch[1].trim();
+                }
+                
+                // 提取校区信息
+                const campusMatch = courseLine.match(/校区[:：]([^ ]+)/);
+                if (campusMatch) {
+                    courseInfo.campus = campusMatch[1].trim();
+                }
+                
+                // 提取上课地点
+                const locationMatch = courseLine.match(/上课地点[:：]([^ ]+)/);
+                if (locationMatch) {
+                    courseInfo.location = locationMatch[1].trim();
+                }
+                
+                // 提取教师信息
+                const teacherMatch = courseLine.match(/教师[:：](.+)$/);
+                if (teacherMatch) {
+                    courseInfo.teacher = teacherMatch[1].trim();
+                }
+                
+                return courseInfo;
+            }
+            
+            // 判断指定周是否在课程周范围内（增强版）
+            function isWeekInRange(weekRange, targetWeek) {
+                if (!weekRange) return false;
+                
+                // 支持复杂格式：
+                // 1-16周
+                // 1-10周
+                // 5-16周(双)
+                // 1-6周,8-11周
+                // 1-3周,5周
+                // 4-6周(双),7-16周
+                
+                // 分割多个周数段
+                const weekSegments = weekRange.split(',');
+                
+                for (const segment of weekSegments) {
+                    // 检查单双周标记
+                    const isDoubleWeek = segment.includes('(双)');
+                    const isSingleWeek = segment.includes('(单)');
+                    
+                    // 提取数字部分
+                    const numberMatch = segment.match(/(\d+)(?:\s*[-~]\s*(\d+))?/);
+                    if (!numberMatch) continue;
+                    
+                    if (numberMatch[2]) {
+                        // 范围格式：开始周-结束周
+                        const start = parseInt(numberMatch[1]);
+                        const end = parseInt(numberMatch[2]);
+                        
+                        if (targetWeek >= start && targetWeek <= end) {
+                            // 检查单双周限制
+                            if (isDoubleWeek) {
+                                return targetWeek % 2 === 0; // 双周：偶数周
+                            } else if (isSingleWeek) {
+                                return targetWeek % 2 === 1; // 单周：奇数周
+                            }
+                            return true;
+                        }
+                    } else {
+                        // 单周格式
+                        const week = parseInt(numberMatch[1]);
+                        if (week === targetWeek) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 筛选目标周课程
+            function filterCoursesByWeek(courses, targetWeek) {
+                return courses.filter(course => isWeekInRange(course.weekRange, targetWeek));
+            }
+            
+            // 检查时间段是否冲突
+            function isTimeConflict(existingSlots, newStart, newEnd) {
+                for (const slot of existingSlots) {
+                    // 如果新时间段与现有时间段有重叠
+                    if (!(newEnd < slot.start || newStart > slot.end)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            // 检查时间段是否被包含
+            function isTimeIncluded(existingSlots, newStart, newEnd) {
+                for (const slot of existingSlots) {
+                    // 如果新时间段完全在某个已占用时间段内
+                    if (newStart >= slot.start && newEnd <= slot.end) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            // 分析空闲时间
+            function analyzeFreeTime(courses) {
+                // 定义一天中的节次范围
+                const allTimeSlots = [
+                    {start: 1, end: 2, display: '1-2节'},
+                    {start: 3, end: 4, display: '3-4节'},
+                    {start: 5, end: 6, display: '5-6节'},
+                    {start: 7, end: 8, display: '7-8节'},
+                    {start: 9, end: 11, display: '9-11节'}
+                ];
+                
+                const days = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+                
+                // 初始化结果结构
+                const daySchedule = {};
+                days.forEach(day => {
+                    daySchedule[day] = {
+                        occupiedTimeRanges: [], // 存储时间段范围对象
+                        occupied: [], // 存储显示字符串
+                        free: [], // 存储空闲时间段显示字符串
+                        courses: [] // 存储具体课程信息
+                    };
+                });
+                
+                // 处理占用时间段
+                courses.forEach(course => {
+                    const day = course.day;
+                    const startSlot = course.startSlot;
+                    const endSlot = course.endSlot;
+                    
+                    if (daySchedule[day]) {
+                        // 检查是否已存在相同的时间段
+                        if (!isTimeIncluded(daySchedule[day].occupiedTimeRanges, startSlot, endSlot)) {
+                            // 添加时间范围对象
+                            daySchedule[day].occupiedTimeRanges.push({
+                                start: startSlot,
+                                end: endSlot,
+                                display: course.timeSlot
+                            });
+                        }
+                        
+                        // 添加课程信息
+                        daySchedule[day].courses.push(course);
+                    }
+                });
+                
+                // 根据占用时间段计算空闲时间段
+                days.forEach(day => {
+                    const schedule = daySchedule[day];
+                    
+                    // 重新计算显示字符串
+                    schedule.occupied = [];
+                    schedule.free = [];
+                    
+                    // 检查每个标准时间段是否被占用
+                    allTimeSlots.forEach(slot => {
+                        let isOccupied = false;
+                        
+                        // 检查是否与任何占用时间段有重叠
+                        for (const occupiedRange of schedule.occupiedTimeRanges) {
+                            // 如果标准时间段与占用时间段有重叠，则标记为占用
+                            if (!(slot.end < occupiedRange.start || slot.start > occupiedRange.end)) {
+                                isOccupied = true;
+                                // 确保占用时间段显示字符串不重复
+                                if (!schedule.occupied.includes(occupiedRange.display)) {
+                                    schedule.occupied.push(occupiedRange.display);
+                                }
+                                break;
+                            }
+                        }
+                        
+                        if (!isOccupied) {
+                            schedule.free.push(slot.display);
+                        }
+                    });
+                    
+                    // 对占用和空闲时间段进行排序
+                    schedule.occupied.sort((a, b) => {
+                        return parseInt(a) - parseInt(b);
+                    });
+                    schedule.free.sort((a, b) => {
+                        return parseInt(a) - parseInt(b);
+                    });
+                });
+                
+                return daySchedule;
+            }
+            
+            // 显示分析结果
+            function displayResults(targetWeek, allCourses, targetWeekCourses, freeTime) {
+                // 更新周次信息
+                weekNumber.textContent = targetWeek;
+                totalCourses.textContent = allCourses.length;
+                occupiedCourses.textContent = targetWeekCourses.length;
+                
+                // 生成日程结果HTML
+                let resultsHTML = '';
+                const days = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+                
+                days.forEach(day => {
+                    const schedule = freeTime[day];
+                    if (!schedule) return;
+                    
+                    // 全天无课的情况
+                    if (schedule.occupied.length === 0 && schedule.free.length === 5) {
+                        resultsHTML += `
+                        <div class="day-schedule">
+                            <div class="day-title">${day}：全天无课</div>
+                            <div class="time-slots">
+                                ${schedule.free.map(slot => `<span class="slot free">${slot}</span>`).join('')}
+                            </div>
+                        </div>`;
+                    } 
+                    // 有课但也有空闲时间
+                    else if (schedule.free.length > 0) {
+                        resultsHTML += `
+                        <div class="day-schedule">
+                            <div class="day-title">${day}：空闲时间段</div>
+                            <div class="time-slots">
+                                ${schedule.free.map(slot => `<span class="slot free">${slot}</span>`).join('')}
+                            </div>`;
+                        
+                        if (schedule.occupied.length > 0) {
+                            resultsHTML += `
+                            <div style="margin-top: 15px; font-size: 0.9rem; color: #777;">
+                                <strong>占用时间段：</strong>
+                                ${schedule.occupied.map(slot => `<span class="slot occupied" style="margin-left: 8px; padding: 4px 10px;">${slot}</span>`).join('')}
+                            </div>`;
+                        }
+                        
+                        // 显示课程详细信息
+                        if (schedule.courses.length > 0) {
+                            resultsHTML += `
+                            <div class="course-details">
+                                <strong>课程详情：</strong>`;
+                            
+                            schedule.courses.forEach(course => {
+                                resultsHTML += `
+                                <div class="course-item">
+                                    <span class="course-name">${course.name}</span>
+                                    <span class="course-info">${course.timeSlot} | ${course.teacher} | ${course.location}</span>
+                                </div>`;
+                            });
+                            
+                            resultsHTML += `</div>`;
+                        }
+                        
+                        resultsHTML += `</div>`;
+                    } 
+                    // 全天满课
+                    else {
+                        resultsHTML += `
+                        <div class="day-schedule">
+                            <div class="day-title">${day}：全天有课</div>
+                            <div class="time-slots">
+                                ${schedule.occupied.map(slot => `<span class="slot occupied">${slot}</span>`).join('')}
+                            </div>`;
+                        
+                        // 显示课程详细信息
+                        if (schedule.courses.length > 0) {
+                            resultsHTML += `
+                            <div class="course-details">
+                                <strong>课程详情：</strong>`;
+                            
+                            schedule.courses.forEach(course => {
+                                resultsHTML += `
+                                <div class="course-item">
+                                    <span class="course-name">${course.name}</span>
+                                    <span class="course-info">${course.timeSlot} | ${course.teacher} | ${course.location}</span>
+                                </div>`;
+                            });
+                            
+                            resultsHTML += `</div>`;
+                        }
+                        
+                        resultsHTML += `</div>`;
+                    }
+                });
+                
+                // 如果没有生成任何结果
+                if (!resultsHTML) {
+                    resultsHTML = '<p style="text-align: center; padding: 30px; color: #7f8c8d;">没有找到课程安排数据，请检查输入的格式是否正确</p>';
+                }
+                
+                scheduleResults.innerHTML = resultsHTML;
+                resultContainer.style.display = 'block';
+                
+                // 滚动到结果区域
+                resultContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 生成并显示文本格式结果
+            function generateTextResult(targetWeek, freeTime) {
+                let textResult = `分析周次：${targetWeek}周\n\n`;
+                let totalFreeSlots = 0;
+                const days = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+                
+                days.forEach(day => {
+                    const schedule = freeTime[day];
+                    if (!schedule) return;
+                    
+                    // 统计空闲时间段总数
+                    totalFreeSlots += schedule.free.length;
+                    
+                    // 全天无课的情况
+                    if (schedule.occupied.length === 0 && schedule.free.length === 5) {
+                        textResult += `${day}：全天无课\n`;
+                    } 
+                    // 有课但也有空闲时间
+                    else if (schedule.free.length > 0) {
+                        textResult += `${day}：${schedule.free.join('、')}\n`;
+                    } 
+                    // 全天满课
+                    else {
+                        textResult += `${day}：全天有课\n`;
+                    }
+                });
+                
+                // 添加统计信息
+                textResult += `\n本周共有 ${totalFreeSlots} 个空闲时间段\n`;
+                
+                textResultContent.innerText = textResult;
+            }
+        });
+    </script>
+</body>
+</html>
